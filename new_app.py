@@ -27,7 +27,7 @@ except:
 col1, col2 = st.columns([2, 1], gap="large")
 
 with col1:
-    st.title("📝 Service Request Form")
+    st.title("📝 Enter Your(Needy/Solver) details here")
     with st.form("user_form", clear_on_submit=True):
         full_name = st.text_input("Full Name")
         email = st.text_input("Email")
