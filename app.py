@@ -2,12 +2,17 @@ import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
 
-# 1. Setup Connection to Google Sheets
+# Define the scope
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-# In production, use st.secrets to store these credentials safely
-creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
+
+# Retrieve the secret from Streamlit's TOML format
+# "gcp_service_account" must match the name in your Secrets box
+creds_dict = st.secrets["gcp_service_account"]
+creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+
 client = gspread.authorize(creds)
-sheet = client.open("Your_Sheet_Name").sheet1
+# Use your exact Sheet name here
+sheet = client.open("smasya-samadhan-form").sheet1
 
 # 2. UI Form
 st.title("AI Support Assistant")
