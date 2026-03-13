@@ -34,90 +34,50 @@ if "chat_open" not in st.session_state:
     st.session_state.chat_open = False
 
 # --- 4. CUSTOM CSS FOR FLOATING CHAT BUBBLE ---
-# Yeh CSS pure app ko standard Floating Chat UI jaisa dikhayega
-st.markdown("""
+# Humne CSS ko ek variable me store kiya hai taaki indentation errors na aayein
+custom_css = """
 <style>
-    /* 1. Chat Container (Right-Bottom Corner) */
+    /* Chat Container */
     .stChatContainer {
         position: fixed;
-        bottom: 20px;
+        bottom: 80px;
         right: 20px;
-        z-index: 1000;
-        display: flex;
-        flex-direction: column-reverse; /* For correct input placement */
-        align-items: flex-end;
+        z-index: 999999;
     }
 
-    /* 2. Floating Chat Icon (Bubble) */
+    /* Floating Chat Icon (Bubble) */
     .stChatFloatingIcon {
-        width: 60px;
-        height: 60px;
-        background-color: #ff4b4b; /* Streamlit default color, or change to #007bff for blue */
-        border-radius: 50%;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 30px;
-        color: white;
-        margin-top: 10px;
-        transition: transform 0.2s ease;
-    }
-    .stChatFloatingIcon:hover {
-        transform: scale(1.1);
+        width: 60px !important;
+        height: 60px !important;
+        background-color: #ff4b4b !important;
+        border-radius: 50% !important;
+        box-shadow: 2px 4px 10px rgba(0,0,0,0.3) !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 30px !important;
+        color: white !important;
+        border: none !important;
     }
 
-    /* 3. The Chat Window (when open) */
+    /* Chat Window Layout */
     .stChatWindow {
-        width: 350px;
-        height: 450px;
-        background-color: white;
-        border-radius: 10px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        overflow: hidden;
+        width: 320px;
+        height: 400px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        margin-bottom: 15px;
         display: flex;
         flex-direction: column;
-        display: none; /* Initially hidden */
-    }
-
-    /* Show Chat Window when open */
-    .show-chat .stChatWindow {
-        display: flex;
-    }
-
-    /* Chat Header */
-    .stChatHeader {
-        background-color: #f0f2f6;
-        padding: 10px 15px;
-        border-bottom: 1px solid #ddd;
-        font-weight: bold;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    /* Close button in header */
-    .stCloseChat {
-        cursor: pointer;
-        color: #888;
-        font-size: 20px;
-    }
-
-    /* Message Area (make it scrollable) */
-    .stChatHistory {
-        flex: 1;
-        overflow-y: auto;
-        padding: 15px;
-        background-color: #fafafa;
-    }
-
-    /* Streamlit's internal chat elements must be modified to fit the small window */
-    .element-container:has(div.stChatFloatingIcon) {
-        pointer-events: none; /* Make clicking the icon work */
+        border: 1px solid #eee;
     }
 </style>
-""", unsafe_allow_with_html=True)
+"""
+
+# Is line ko call karein
+st.markdown(custom_css, unsafe_allow_with_html=True)
 
 # --- 5. CHATBOT UI & LOGIC ---
 
