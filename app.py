@@ -5,7 +5,7 @@ from google.oauth2.service_account import Credentials
 
 # --- 1. CONFIGURATION & AI SETUP ---
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 # Google Sheets Setup
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
