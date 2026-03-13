@@ -49,7 +49,7 @@ with col1:
         if submitted:
             if full_name and email and contact and problem:
                 # Yahan humne 'role' ko append_row mein include kiya hai
-                sheet.append_row([full_name, email, contact, role, problem])
+                sheet.append_row([full_name, email, contact, problem, role])
                 st.success(f"Thank you {full_name}! Your request as a {role} has been saved.")
             else:
                 st.warning("Please fill all fields (Name, Email, Contact, and Problem).")
