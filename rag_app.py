@@ -42,7 +42,7 @@ def get_conversational_chain():
     Question: \n{question}\n
     Answer:
     """
-    model = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.3, google_api_key=api_key)
+    model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3, google_api_key=api_key)
     prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
     chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
     return chain
@@ -65,7 +65,7 @@ with col1:
     st.divider()
 
     # Existing Form
-    with st.form("user_form", clear_on_submit=True):
+    with st.form("smasya-samadhan-form", clear_on_submit=True):
         full_name = st.text_input("Full Name")
         role = st.selectbox("Select Your Role", ["Needy/Student/Learner", "Solver/Teacher/Trainer"])
         problem = st.text_area("Problem Description")
