@@ -98,26 +98,40 @@ with col2:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    if prompt := st.chat_input("Puchiye apna sawal..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+    # --- Chat Processing Logic ---
+if prompt := st.chat_input("Puchiye apna sawal..."):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-        with st.chat_message("assistant"):
-            response_text = ""
-            
-            # Hybrid Logic: Pehle Document check karo
-            if st.session_state.vector_db:
-                search_results = st.session_state.vector_db.similarity_search(prompt, k=3)
-                # Agar document mein relevant info milti hai
-                qa_chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=st.session_state.vector_db.as_retriever())
-                response = qa_chain.invoke(prompt)
-                response_text = response["result"]
-            
-            # Fallback: Agar Document me answer nahi hai (ya document nahi hai)
-            if not response_text or "answer is not available" in response_text.lower() or "maaf kijiye" in response_text.lower():
-                full_ai_response = llm.invoke(prompt)
-                response_text = full_ai_response.content
-            
-            st.markdown(response_text)
-            st.session_state.messages.append({"role": "assistant", "content": response_text})
+    with st.chat_message("assistant"):
+        response_text = ""
+        
+        if st.session_state.vector_db:
+            # 1. Prompt Taiyar Karein
+            system_prompt = (
+                "You are an assistant for question-answering tasks. "
+                "Use the following pieces of retrieved context to answer the question. "
+                "If the answer is not in the context, use your own knowledge to answer, "
+                "but prioritize the document context first.\n\n"
+                "{context}"
+            )
+            chat_prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt),
+                ("human", "{input}"),
+            ])
+
+            # 2. Chain Banayein
+            question_answer_chain = create_stuff_documents_chain(llm, chat_prompt)
+            rag_chain = create_retrieval_chain(st.session_state.vector_db.as_retriever(), question_answer_chain)
+
+            # 3. Answer Generate Karein
+            response = rag_chain.invoke({"input": prompt})
+            response_text = response["answer"]
+        else:
+            # Agar document nahi hai toh seedhe LLM se puchein
+            full_ai_response = llm.invoke(prompt)
+            response_text = full_ai_response.content
+        
+        st.markdown(response_text)
+        st.session_state.messages.append({"role": "assistant", "content": response_text})
