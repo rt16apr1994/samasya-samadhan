@@ -3,13 +3,16 @@ import gspread
 import google.generativeai as genai
 from google.oauth2.service_account import Credentials
 from PyPDF2 import PdfReader
+import os
 
-# Sahi Import Statements
+# Naye Stable Imports
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_community.vectorstores import FAISS
-from langchain.chains.retrieval_qa.base import RetrievalQA # <--- Updated Line
-import os
+from langchain.chains import create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.prompts import ChatPromptTemplate
+
 
 # --- 1. CONFIGURATION ---
 st.set_page_config(page_title="Hybrid AI Support", layout="wide")
