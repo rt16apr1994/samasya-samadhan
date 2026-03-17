@@ -8,36 +8,44 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGener
 from langchain_community.vectorstores import FAISS
 from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
+import os
 
 # --- 1. CONFIGURATION ---
-st.set_page_config(page_title="RAG Support App", layout="wide")
+st.set_page_config(page_title="AI Support App", layout="wide")
 api_key = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=api_key)
 
-# --- 2. RAG FUNCTIONS (PDF Processing) ---
-def get_pdf_text(pdf_docs):
+# PDF File Path (Aapki file ka naam yahan likhein)
+PDF_FILE_PATH = "data.pdf" 
+
+# --- 2. RAG LOGIC (Background Processing) ---
+
+def process_local_pdf(file_path):
+    """Server side PDF ko read karke vector store banata hai"""
+    if not os.path.exists(file_path):
+        st.error(f"Error: {file_path} file nahi mili! Please check project folder.")
+        return False
+    
+    # 1. Extract Text
     text = ""
-    for pdf in pdf_docs:
-        pdf_reader = PdfReader(pdf)
-        for page in pdf_reader.pages:
-            text += page.extract_text()
-    return text
-
-def get_text_chunks(text):
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
+    pdf_reader = PdfReader(file_path)
+    for page in pdf_reader.pages:
+        text += page.extract_text()
+    
+    # 2. Chunking
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
     chunks = text_splitter.split_text(text)
-    return chunks
-
-def get_vector_store(text_chunks):
+    
+    # 3. Create Vector Store
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
-    vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
+    vector_store = FAISS.from_texts(chunks, embedding=embeddings)
     vector_store.save_local("faiss_index")
-    return vector_store
+    return True
 
 def get_conversational_chain():
     prompt_template = """
     Answer the question as detailed as possible from the provided context. If the answer is not in
-    provided context, just say, "answer is not available in the context", don't provide the wrong answer.\n\n
+    provided context, just say, "Maaf kijiye, iska jawab document mein nahi hai.", don't provide the wrong answer.\n\n
     Context:\n {context}?\n
     Question: \n{question}\n
     Answer:
@@ -47,57 +55,68 @@ def get_conversational_chain():
     chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
     return chain
 
-# --- 3. UI LAYOUT ---
+# --- 3. AUTO-PROCESS PDF ON LOAD ---
+# Yeh check karta hai ki kya index pehle se bana hai, nahi to banata hai
+if "processed" not in st.session_state:
+    with st.spinner("AI Brain loading... Please wait."):
+        success = process_local_pdf(PDF_FILE_PATH)
+        if success:
+            st.session_state.processed = True
+
+# --- 4. UI LAYOUT ---
 col1, col2 = st.columns([1, 1], gap="large")
 
 with col1:
-    st.title("📝 Form & PDF Upload")
-    
-    # PDF Upload Section
-    uploaded_files = st.file_uploader("Upload PDF for AI Context", accept_multiple_files=True, type=["pdf"])
-    if st.button("Process PDF"):
-        with st.spinner("Reading PDF..."):
-            raw_text = get_pdf_text(uploaded_files)
-            text_chunks = get_text_chunks(raw_text)
-            get_vector_store(text_chunks)
-            st.success("PDF Processed! Now ask questions in the chat.")
-
-    st.divider()
-
-    # Existing Form
-    with st.form("smasya-samadhan-form", clear_on_submit=True):
+    st.title("📝 Service Request Form")
+    with st.form("user_form", clear_on_submit=True):
         full_name = st.text_input("Full Name")
+        email = st.text_input("Email")
+        contact = st.text_input("Contact Number")
         role = st.selectbox("Select Your Role", ["Needy/Student/Learner", "Solver/Teacher/Trainer"])
         problem = st.text_area("Problem Description")
+        
         submitted = st.form_submit_button("Submit Request")
         if submitted:
-            # (Sheets logic remains same)
-            st.success("Data Saved!")
+            # Google Sheets logic
+            try:
+                scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+                creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
+                client = gspread.authorize(creds)
+                sheet = client.open("smasya-samadhan-form").sheet1
+                sheet.append_row([full_name, email, contact, role, problem])
+                st.success("Aapka data save ho gaya hai!")
+            except:
+                st.error("Sheets connection error!")
 
 with col2:
-    st.title("🤖 RAG AI Chat")
+    st.title("🤖 Chat with Our AI")
+    st.info("Mein aapki help ke liye document se information nikal sakta hoon.")
     
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
+    # Display chat history
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    if user_question := st.chat_input("Ask about the PDF..."):
+    if user_question := st.chat_input("Puchiye apne sawal..."):
         st.session_state.messages.append({"role": "user", "content": user_question})
         with st.chat_message("user"):
             st.markdown(user_question)
 
-        # RAG Logic for response
         with st.chat_message("assistant"):
-            embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
-            new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-            docs = new_db.similarity_search(user_question)
-            
-            chain = get_conversational_chain()
-            response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
-            
-            final_res = response["output_text"]
-            st.markdown(final_res)
-            st.session_state.messages.append({"role": "assistant", "content": final_res})
+            if "processed" in st.session_state:
+                embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
+                # Load index from local folder
+                new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+                docs = new_db.similarity_search(user_question)
+                
+                chain = get_conversational_chain()
+                response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
+                
+                res_text = response["output_text"]
+                st.markdown(res_text)
+                st.session_state.messages.append({"role": "assistant", "content": res_text})
+            else:
+                st.warning("PDF abhi tak process nahi hui hai.")
