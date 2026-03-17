@@ -89,33 +89,33 @@ with col2:
             st.markdown(msg["content"])
 
     if prompt := st.chat_input("Puchiye apna sawal..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    with st.chat_message("assistant"):
-        if st.session_state.vector_db:
-            # 1. Similarity Search (Document se relevant part nikalna)
-            docs = st.session_state.vector_db.similarity_search(prompt, k=3)
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+    
+        with st.chat_message("assistant"):
+            if st.session_state.vector_db:
+                # 1. Similarity Search (Document se relevant part nikalna)
+                docs = st.session_state.vector_db.similarity_search(prompt, k=3)
+                
+                # 2. Prompt Template
+                template = """Answer the question based only on the provided context. 
+                If the answer is not in the context, use your general knowledge.
+                
+                Context: {context}
+                Question: {question}
+                Answer:"""
+                
+                QA_PROMPT = PromptTemplate(template=template, input_variables=["context", "question"])
+                
+                # 3. Chain execution
+                chain = load_qa_chain(llm, chain_type="stuff", prompt=QA_PROMPT)
+                response = chain({"input_documents": docs, "question": prompt}, return_only_outputs=True)
+                answer = response["output_text"]
+            else:
+                # Fallback to direct LLM
+                response = llm.invoke(prompt)
+                answer = response.content
             
-            # 2. Prompt Template
-            template = """Answer the question based only on the provided context. 
-            If the answer is not in the context, use your general knowledge.
-            
-            Context: {context}
-            Question: {question}
-            Answer:"""
-            
-            QA_PROMPT = PromptTemplate(template=template, input_variables=["context", "question"])
-            
-            # 3. Chain execution
-            chain = load_qa_chain(llm, chain_type="stuff", prompt=QA_PROMPT)
-            response = chain({"input_documents": docs, "question": prompt}, return_only_outputs=True)
-            answer = response["output_text"]
-        else:
-            # Fallback to direct LLM
-            response = llm.invoke(prompt)
-            answer = response.content
-        
-        st.markdown(answer)
-        st.session_state.messages.append({"role": "assistant", "content": answer})
+            st.markdown(answer)
+            st.session_state.messages.append({"role": "assistant", "content": answer})
