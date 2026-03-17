@@ -5,14 +5,12 @@ from google.oauth2.service_account import Credentials
 from PyPDF2 import PdfReader
 import os
 
-# --- STABLE IMPORTS (Updated for LangChain 2024/25) ---
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+# --- STABLE & SIMPLE IMPORTS ---
+from langchain.chains.question_answering import load_qa_chain
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_community.vectorstores import FAISS
-# Yahan se error aa raha tha, ab hum naya path use kar rahe hain:
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.chains.retrieval import create_retrieval_chain
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain.prompts import PromptTemplate
 
 # --- 1. CONFIGURATION ---
 st.set_page_config(page_title="Hybrid AI Support", layout="wide")
@@ -91,31 +89,33 @@ with col2:
             st.markdown(msg["content"])
 
     if prompt := st.chat_input("Puchiye apna sawal..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-        with st.chat_message("assistant"):
-            if st.session_state.vector_db:
-                # Naya Retrieval Chain Process
-                system_prompt = (
-                    "You are a helpful assistant. Use the following context to answer. "
-                    "If the answer isn't there, use your own knowledge. \n\n {context}"
-                )
-                chat_prompt = ChatPromptTemplate.from_messages([
-                    ("system", system_prompt),
-                    ("human", "{input}"),
-                ])
-                
-                combine_docs_chain = create_stuff_documents_chain(llm, chat_prompt)
-                retrieval_chain = create_retrieval_chain(st.session_state.vector_db.as_retriever(), combine_docs_chain)
-                
-                response = retrieval_chain.invoke({"input": prompt})
-                answer = response["answer"]
-            else:
-                # Fallback to direct LLM
-                response = llm.invoke(prompt)
-                answer = response.content
+    with st.chat_message("assistant"):
+        if st.session_state.vector_db:
+            # 1. Similarity Search (Document se relevant part nikalna)
+            docs = st.session_state.vector_db.similarity_search(prompt, k=3)
             
-            st.markdown(answer)
-            st.session_state.messages.append({"role": "assistant", "content": answer})
+            # 2. Prompt Template
+            template = """Answer the question based only on the provided context. 
+            If the answer is not in the context, use your general knowledge.
+            
+            Context: {context}
+            Question: {question}
+            Answer:"""
+            
+            QA_PROMPT = PromptTemplate(template=template, input_variables=["context", "question"])
+            
+            # 3. Chain execution
+            chain = load_qa_chain(llm, chain_type="stuff", prompt=QA_PROMPT)
+            response = chain({"input_documents": docs, "question": prompt}, return_only_outputs=True)
+            answer = response["output_text"]
+        else:
+            # Fallback to direct LLM
+            response = llm.invoke(prompt)
+            answer = response.content
+        
+        st.markdown(answer)
+        st.session_state.messages.append({"role": "assistant", "content": answer})
