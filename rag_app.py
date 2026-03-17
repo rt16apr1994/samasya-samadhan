@@ -16,7 +16,7 @@ api_key = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=api_key)
 
 # PDF File Path (Aapki file ka naam yahan likhein)
-PDF_FILE_PATH = "data.pdf" 
+PDF_FILE_PATH = "bhopal_culture.pdf" 
 
 # --- 2. RAG LOGIC (Background Processing) ---
 
