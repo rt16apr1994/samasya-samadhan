@@ -3,10 +3,12 @@ import gspread
 import google.generativeai as genai
 from google.oauth2.service_account import Credentials
 from PyPDF2 import PdfReader
+
+# Sahi Import Statements
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_community.vectorstores import FAISS
-from langchain.chains import RetrievalQA
+from langchain.chains.retrieval_qa.base import RetrievalQA # <--- Updated Line
 import os
 
 # --- 1. CONFIGURATION ---
