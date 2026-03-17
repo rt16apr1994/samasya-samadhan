@@ -19,7 +19,7 @@ if "GEMINI_API_KEY" not in st.secrets:
 api_key = st.secrets["GEMINI_API_KEY"]
 
 # File Path (Apni file ka sahi naam yahan likhein)
-PDF_FILE_PATH = "data.pdf" 
+PDF_FILE_PATH = "bhopal_culture.pdf" 
 
 # --- 2. RAG LOGIC ---
 
