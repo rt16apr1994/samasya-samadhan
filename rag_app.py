@@ -4,12 +4,17 @@ import google.generativeai as genai
 from google.oauth2.service_account import Credentials
 from PyPDF2 import PdfReader
 
-# Naye tarike se imports
+# Naye structure ke hisab se imports
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_community.vectorstores import FAISS
-from langchain.chains.question_answering import load_qa_chain
-from langchain.prompts import PromptTemplate
+
+# Agar load_qa_chain me error hai, to ise try-except me rakhein
+try:
+    from langchain.chains.question_answering import load_qa_chain
+    from langchain.prompts import PromptTemplate
+except ImportError:
+    st.error("Langchain chains load nahi ho pa rahi hain. Please reboot the app.")
 import os
 
 # --- 1. CONFIGURATION ---
